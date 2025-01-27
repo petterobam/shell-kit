@@ -2,6 +2,23 @@
 
 Shell is a simple package that gives you the ability to call shell commands through Swift.
 
+## Install
+
+Just use the [Swift Package Manager](https://theswiftdev.com/2017/11/09/swift-package-manager-tutorial/) as usual:
+
+```swift
+.package(url: "https://github.com/binarybirds/shell-kit", from: "2.0.0"),
+```
+
+Don't forget to add "ShellKit" to your target as a dependency:
+
+```swift
+.product(name: "ShellKit", package: "shell-kit"),
+```
+
+That's it.
+
+
 ## Usage
 
 Run (sync):
@@ -35,23 +52,3 @@ You can even set custom ouptut & error handlers.
 
 
 
-## Install
-
-Just use the [Swift Package Manager](https://theswiftdev.com/2017/11/09/swift-package-manager-tutorial/) as usual:
-
-```swift
-.package(url: "https://github.com/binarybirds/shell-kit", from: "1.0.0"),
-```
-
-Don't forget to add "ShellKit" to your target as a dependency:
-
-```swift
-.product(name: "ShellKit", package: "shell-kit"),
-```
-
-That's it.
-
-
-## License
-
-[WTFPL](LICENSE) - Do what the fuck you want to.

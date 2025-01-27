@@ -1,7 +1,7 @@
 /**
     Shell.swift
     ShellKit
- 
+
     Created by Tibor Bödecs on 2018.12.31.
     Copyright Binary Birds. All rights reserved.
  */
@@ -14,18 +14,18 @@ private extension FileHandle {
 
     // checks if the FileHandle is a standard one (STDOUT, STDIN, STDERR)
     var isStandard: Bool {
-        return self === FileHandle.standardOutput ||
-            self === FileHandle.standardError ||
-            self === FileHandle.standardInput
+        return self === FileHandle.standardOutput
+            || self === FileHandle.standardError
+            || self === FileHandle.standardInput
     }
 }
 
 // shell data handler protocol
 public protocol ShellDataHandler {
-    
+
     // called each time there is new data available
     func handle(_ data: Data)
-    
+
     // optional method called on the end of the execution process
     func end()
 }
@@ -54,14 +54,14 @@ extension FileHandle: ShellDataHandler {
 
 // a custom shell representation object
 open class Shell {
-    
+
     // shell errors
     public enum Error: LocalizedError {
         // invalid shell output data error
         case outputData
         // generic shell error, the first parameter is the error code, the second is the error message
         case generic(Int, String)
-        
+
         public var errorDescription: String? {
             switch self {
             case .outputData:
@@ -71,13 +71,13 @@ open class Shell {
             }
         }
     }
-    
+
     // lock queue to keep data writes in sync
     private let lockQueue: DispatchQueue
 
     // type of the shell, by default: /bin/sh
     public var type: String
-    
+
     // custom env variables exposed for the shell
     public var env: [String: String]
 
@@ -91,11 +91,11 @@ open class Shell {
 
     /**
         Initializes a new Shell object
-     
+
         - Parameters:
             - type: The type of the shell, default: /bin/sh
         - env: Additional environment variables for the shell, default: empty
-     
+
      */
     public init(_ type: String = "/bin/sh", env: [String: String] = [:]) {
         self.lockQueue = DispatchQueue(label: "shellkit.lock.queue")
@@ -105,15 +105,15 @@ open class Shell {
 
     /**
         Runs a specific command through the current shell.
-     
+
         - Parameters:
             - command: The command to be executed
-     
+
         - Throws:
             `Shell.Error.outputData` if the command execution succeeded but the output is empty,
             otherwise `Shell.Error.generic(Int, String)` where the first parameter is the exit code,
             the second is the error message
-     
+
         - Returns: The output string of the command without trailing newlines
      */
     @discardableResult
@@ -121,7 +121,7 @@ open class Shell {
         let process = Process()
         process.launchPath = self.type
         process.arguments = ["-c", command]
-        
+
         if !self.env.isEmpty {
             process.environment = ProcessInfo.processInfo.environment
             self.env.forEach { variable in
@@ -132,11 +132,11 @@ open class Shell {
         var outputData = Data()
         let outputPipe = Pipe()
         process.standardOutput = outputPipe
-            
+
         var errorData = Data()
         let errorPipe = Pipe()
         process.standardError = errorPipe
-            
+
         #if os(macOS)
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
@@ -153,16 +153,16 @@ open class Shell {
             }
         }
         #endif
-        
+
         process.launch()
-        
+
         #if os(Linux)
         self.lockQueue.sync {
             outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
             errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
         }
         #endif
-        
+
         process.waitUntilExit()
 
         #if os(macOS)
@@ -172,7 +172,7 @@ open class Shell {
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
         #endif
-        
+
         return try self.lockQueue.sync {
             guard process.terminationStatus == 0 else {
                 var message = "Unknown error"
@@ -187,18 +187,24 @@ open class Shell {
             return output.trimmingCharacters(in: .newlines)
         }
     }
-    
+
     /**
         Async version of the run command
-     
+
         - Parameters:
             - command: The command to be executed
             - completion: The completion block with the output and error
 
         The command will be executed on a concurrent dispatch queue.
      */
-    public func run(_ command: String, completion: @escaping ((String?, Swift.Error?) -> Void)) {
-        let queue = DispatchQueue(label: "shellkit.process.queue", attributes: .concurrent)
+    public func run(
+        _ command: String,
+        completion: @escaping ((String?, Swift.Error?) -> Void)
+    ) {
+        let queue = DispatchQueue(
+            label: "shellkit.process.queue",
+            attributes: .concurrent
+        )
         queue.async {
             do {
                 let output = try self.run(command)
