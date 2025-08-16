@@ -9,7 +9,7 @@
 import Foundation
 import Dispatch
 
-#if os(macOS)
+#if os(macOS) || os(Linux)
 private extension FileHandle {
 
     // checks if the FileHandle is a standard one (STDOUT, STDIN, STDERR)
@@ -61,6 +61,8 @@ open class Shell {
         case outputData
         // generic shell error, the first parameter is the error code, the second is the error message
         case generic(Int, String)
+        // platform not supported error (iOS)
+        case platformNotSupported
         
         public var errorDescription: String? {
             switch self {
@@ -68,6 +70,8 @@ open class Shell {
                 return "Invalid or empty shell output."
             case .generic(let code, let message):
                 return message + " (code: \(code))"
+            case .platformNotSupported:
+                return "Shell commands are not supported on this platform."
             }
         }
     }
@@ -81,7 +85,7 @@ open class Shell {
     // custom env variables exposed for the shell
     public var env: [String: String]
 
-    #if os(macOS)
+    #if os(macOS) || os(Linux)
     // output data handler
     public var outputHandler: ShellDataHandler?
 
@@ -118,6 +122,10 @@ open class Shell {
      */
     @discardableResult
     public func run(_ command: String) throws -> String {
+        #if os(iOS)
+        // On iOS, Process is not available, so we throw an error
+        throw Error.platformNotSupported
+        #else
         let process = Process()
         process.launchPath = self.type
         process.arguments = ["-c", command]
@@ -186,6 +194,7 @@ open class Shell {
             }
             return output.trimmingCharacters(in: .newlines)
         }
+        #endif
     }
     
     /**
